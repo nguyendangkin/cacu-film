@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 function App() {
     const [totalMachines, setTotalMachines] = useState(14);
@@ -26,8 +26,7 @@ function App() {
         return { averagePrice, totalCost };
     };
 
-    // Tính lợi nhuận
-    const calculateProfit = () => {
+    useEffect(() => {
         let { averagePrice, totalCost } = calculateAveragePrice(
             totalMachines,
             goodRatio,
@@ -36,14 +35,23 @@ function App() {
             badPrice
         );
         let profit = totalCost - purchasePrice;
+        let grossProfitMargin = (profit / totalCost) * 100;
 
         setResult({
             totalValue: totalCost,
             averagePrice,
             profit,
+            grossProfitMargin,
             isProfitable: profit > 0,
         });
-    };
+    }, [
+        totalMachines,
+        goodRatio,
+        badRatio,
+        goodPrice,
+        badPrice,
+        purchasePrice,
+    ]);
 
     const formatCurrency = (number) => {
         return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -91,16 +99,11 @@ function App() {
                     isPrice={true}
                 />
 
-                {/* Nút tính toán */}
-                <button onClick={calculateProfit} style={styles.button}>
-                    Tính toán 📊
-                </button>
-
                 {/* Hiển thị kết quả */}
                 {result && (
                     <div style={styles.resultBox}>
                         <p>
-                            📌 <b>Giá lô khi về tay:</b>{" "}
+                            📌 <b>Giá cuối khi Lô về tay:</b>{" "}
                             {formatCurrency(purchasePrice)} VND
                         </p>
                         <p>
@@ -112,8 +115,12 @@ function App() {
                             {formatCurrency(result.averagePrice)} VND
                         </p>
                         <p>
-                            💰 <b>Tổng lợi nhuận tìm năng:</b>{" "}
+                            💰 <b>Lợi nhuận gộp:</b>{" "}
                             {formatCurrency(result.profit)} VND
+                        </p>
+                        <p>
+                            📊 <b>Tỷ suất lợi nhuận gộp:</b>{" "}
+                            {result.grossProfitMargin.toFixed(2)}%
                         </p>
                         <p
                             style={{
