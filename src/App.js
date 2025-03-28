@@ -68,13 +68,28 @@ function App() {
         goodPrice,
         badPrice
     ) => {
-        let goodMachines = total * (goodRatio / (goodRatio + badRatio));
-        let badMachines = total * (badRatio / (goodRatio + badRatio));
+        // Đảm bảo các số là number
+        const totalNum = Number(total);
+        const goodRatioNum = Number(goodRatio);
+        const badRatioNum = Number(badRatio);
+        const goodPriceNum = Number(goodPrice);
+        const badPriceNum = Number(badPrice);
 
-        let totalCost = goodMachines * goodPrice + badMachines * badPrice;
-        let averagePrice = totalCost / total;
+        // Tính số lượng máy
+        let goodMachines =
+            totalNum * (goodRatioNum / (goodRatioNum + badRatioNum));
+        let badMachines =
+            totalNum * (badRatioNum / (goodRatioNum + badRatioNum));
 
-        return { averagePrice, totalCost };
+        // Tính giá trị
+        let totalCost = goodMachines * goodPriceNum + badMachines * badPriceNum;
+        let averagePrice = totalCost / totalNum;
+
+        // Làm tròn để tránh lỗi số thập phân
+        return {
+            averagePrice: Math.round(averagePrice),
+            totalCost: Math.round(totalCost),
+        };
     };
 
     useEffect(() => {
@@ -105,7 +120,11 @@ function App() {
     ]);
 
     const formatCurrency = (number) => {
-        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        if (!number) return "0";
+        if (typeof number !== "number") return "0";
+        return Math.round(number)
+            .toString()
+            .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     };
 
     return (
