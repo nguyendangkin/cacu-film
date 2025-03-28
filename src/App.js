@@ -1,13 +1,64 @@
 import React, { useState, useEffect } from "react";
 
 function App() {
-    const [totalMachines, setTotalMachines] = useState(14);
-    const [goodRatio, setGoodRatio] = useState(4);
-    const [badRatio, setBadRatio] = useState(6);
-    const [goodPrice, setGoodPrice] = useState(1200000);
-    const [badPrice, setBadPrice] = useState(600000);
-    const [purchasePrice, setPurchasePrice] = useState(2000000);
+    const [totalMachines, setTotalMachines] = useState(() => {
+        const saved = localStorage.getItem("totalMachines");
+        return saved ? Number(saved) : 14;
+    });
+    const [goodRatio, setGoodRatio] = useState(() => {
+        const saved = localStorage.getItem("goodRatio");
+        return saved ? Number(saved) : 4;
+    });
+    const [badRatio, setBadRatio] = useState(() => {
+        const saved = localStorage.getItem("badRatio");
+        return saved ? Number(saved) : 6;
+    });
+    const [goodPrice, setGoodPrice] = useState(() => {
+        const saved = localStorage.getItem("goodPrice");
+        return saved ? Number(saved) : 1200000;
+    });
+    const [badPrice, setBadPrice] = useState(() => {
+        const saved = localStorage.getItem("badPrice");
+        return saved ? Number(saved) : 600000;
+    });
+    const [purchasePrice, setPurchasePrice] = useState(() => {
+        const saved = localStorage.getItem("purchasePrice");
+        return saved ? Number(saved) : 2000000;
+    });
     const [result, setResult] = useState(null);
+
+    // Lưu giá trị vào localStorage khi thay đổi
+    useEffect(() => {
+        localStorage.setItem("totalMachines", totalMachines);
+        localStorage.setItem("goodRatio", goodRatio);
+        localStorage.setItem("badRatio", badRatio);
+        localStorage.setItem("goodPrice", goodPrice);
+        localStorage.setItem("badPrice", badPrice);
+        localStorage.setItem("purchasePrice", purchasePrice);
+    }, [
+        totalMachines,
+        goodRatio,
+        badRatio,
+        goodPrice,
+        badPrice,
+        purchasePrice,
+    ]);
+
+    // Xử lý thay đổi tỷ lệ
+    const handleRatioChange = (type, value) => {
+        const numValue = Number(value);
+        if (type === "good") {
+            if (numValue >= 0 && numValue <= 10) {
+                setGoodRatio(numValue);
+                setBadRatio(10 - numValue);
+            }
+        } else {
+            if (numValue >= 0 && numValue <= 10) {
+                setBadRatio(numValue);
+                setGoodRatio(10 - numValue);
+            }
+        }
+    };
 
     // Tính giá trung bình mỗi máy
     const calculateAveragePrice = (
@@ -69,16 +120,20 @@ function App() {
                     isPrice={false}
                 />
                 <InputField
-                    label="Tỷ lệ máy tốt"
+                    label="Tỷ lệ máy tốt (tổng 10)"
                     value={goodRatio}
-                    setValue={setGoodRatio}
+                    setValue={(value) => handleRatioChange("good", value)}
                     isPrice={false}
+                    max={10}
+                    linkedValue={badRatio}
                 />
                 <InputField
-                    label="Tỷ lệ máy xấu"
+                    label="Tỷ lệ máy xấu (tổng 10)"
                     value={badRatio}
-                    setValue={setBadRatio}
+                    setValue={(value) => handleRatioChange("bad", value)}
                     isPrice={false}
+                    max={10}
+                    linkedValue={goodRatio}
                 />
                 <InputField
                     label="Giá cứng máy tốt (VND)"
@@ -140,10 +195,16 @@ function App() {
 }
 
 // Component nhập liệu
-function InputField({ label, value, setValue, isPrice }) {
+function InputField({ label, value, setValue, isPrice, max, linkedValue }) {
     const [inputValue, setInputValue] = useState(
         isPrice ? value.toLocaleString("vi-VN") : value.toString()
     );
+
+    useEffect(() => {
+        if (linkedValue !== undefined) {
+            setInputValue(value.toString());
+        }
+    }, [linkedValue, value]);
 
     const handleInputChange = (e) => {
         const newValue = e.target.value;
@@ -151,7 +212,11 @@ function InputField({ label, value, setValue, isPrice }) {
 
         const rawValue = newValue.replace(/\./g, "");
         if (!isNaN(rawValue) && rawValue !== "") {
-            setValue(Number(rawValue));
+            if (max && Number(rawValue) > max) {
+                setValue(max);
+            } else {
+                setValue(Number(rawValue));
+            }
         }
     };
 
