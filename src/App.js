@@ -85,6 +85,12 @@ function App() {
         };
     };
 
+    // Tính giá mỗi máy khi về tay
+    const calculatePricePerMachine = () => {
+        if (totalMachines === 0) return 0;
+        return Math.round(purchasePrice / totalMachines);
+    };
+
     useEffect(() => {
         let { averagePrice, totalCost } = calculateAveragePrice(
             goodMachines,
@@ -94,14 +100,23 @@ function App() {
         );
         let profit = totalCost - purchasePrice;
         let grossProfitMargin = (profit / totalCost) * 100;
+        let pricePerMachine = calculatePricePerMachine();
 
         setResult({
             totalValue: totalCost,
             averagePrice,
             profit,
             grossProfitMargin,
+            pricePerMachine,
         });
-    }, [goodMachines, badMachines, goodPrice, badPrice, purchasePrice]);
+    }, [
+        goodMachines,
+        badMachines,
+        goodPrice,
+        badPrice,
+        purchasePrice,
+        totalMachines,
+    ]);
 
     const formatCurrency = (number) => {
         if (!number) return "0";
@@ -163,6 +178,10 @@ function App() {
                         <p>
                             📌 <b>Giá cuối khi Lô về tay:</b>{" "}
                             {formatCurrency(purchasePrice)} VND
+                        </p>
+                        <p>
+                            💵 <b>Giá mỗi máy khi về tay:</b>{" "}
+                            {formatCurrency(result.pricePerMachine)} VND
                         </p>
                         <p>
                             🔹 <b>Tổng giá trị thực:</b>{" "}
