@@ -5,13 +5,13 @@ function App() {
         const saved = localStorage.getItem("totalMachines");
         return saved ? Number(saved) : 14;
     });
-    const [goodRatio, setGoodRatio] = useState(() => {
-        const saved = localStorage.getItem("goodRatio");
-        return saved ? Number(saved) : 4;
-    });
-    const [badRatio, setBadRatio] = useState(() => {
-        const saved = localStorage.getItem("badRatio");
+    const [goodMachines, setGoodMachines] = useState(() => {
+        const saved = localStorage.getItem("goodMachines");
         return saved ? Number(saved) : 6;
+    });
+    const [badMachines, setBadMachines] = useState(() => {
+        const saved = localStorage.getItem("badMachines");
+        return saved ? Number(saved) : 8;
     });
     const [goodPrice, setGoodPrice] = useState(() => {
         const saved = localStorage.getItem("goodPrice");
@@ -30,60 +30,53 @@ function App() {
     // Lưu giá trị vào localStorage khi thay đổi
     useEffect(() => {
         localStorage.setItem("totalMachines", totalMachines);
-        localStorage.setItem("goodRatio", goodRatio);
-        localStorage.setItem("badRatio", badRatio);
+        localStorage.setItem("goodMachines", goodMachines);
+        localStorage.setItem("badMachines", badMachines);
         localStorage.setItem("goodPrice", goodPrice);
         localStorage.setItem("badPrice", badPrice);
         localStorage.setItem("purchasePrice", purchasePrice);
     }, [
         totalMachines,
-        goodRatio,
-        badRatio,
+        goodMachines,
+        badMachines,
         goodPrice,
         badPrice,
         purchasePrice,
     ]);
 
-    // Xử lý thay đổi tỷ lệ
-    const handleRatioChange = (type, value) => {
+    // Xử lý thay đổi số lượng máy
+    const handleMachineChange = (type, value) => {
         const numValue = Number(value);
         if (type === "good") {
-            if (numValue >= 0 && numValue <= 10) {
-                setGoodRatio(numValue);
-                setBadRatio(10 - numValue);
+            if (numValue >= 0 && numValue <= totalMachines) {
+                setGoodMachines(numValue);
+                setBadMachines(totalMachines - numValue);
             }
         } else {
-            if (numValue >= 0 && numValue <= 10) {
-                setBadRatio(numValue);
-                setGoodRatio(10 - numValue);
+            if (numValue >= 0 && numValue <= totalMachines) {
+                setBadMachines(numValue);
+                setGoodMachines(totalMachines - numValue);
             }
         }
     };
 
     // Tính giá trung bình mỗi máy
     const calculateAveragePrice = (
-        total,
-        goodRatio,
-        badRatio,
+        goodMachines,
+        badMachines,
         goodPrice,
         badPrice
     ) => {
         // Đảm bảo các số là number
-        const totalNum = Number(total);
-        const goodRatioNum = Number(goodRatio);
-        const badRatioNum = Number(badRatio);
+        const goodMachinesNum = Number(goodMachines);
+        const badMachinesNum = Number(badMachines);
         const goodPriceNum = Number(goodPrice);
         const badPriceNum = Number(badPrice);
 
-        // Tính số lượng máy
-        let goodMachines =
-            totalNum * (goodRatioNum / (goodRatioNum + badRatioNum));
-        let badMachines =
-            totalNum * (badRatioNum / (goodRatioNum + badRatioNum));
-
         // Tính giá trị
-        let totalCost = goodMachines * goodPriceNum + badMachines * badPriceNum;
-        let averagePrice = totalCost / totalNum;
+        let totalCost =
+            goodMachinesNum * goodPriceNum + badMachinesNum * badPriceNum;
+        let averagePrice = totalCost / (goodMachinesNum + badMachinesNum);
 
         // Làm tròn để tránh lỗi số thập phân
         return {
@@ -94,9 +87,8 @@ function App() {
 
     useEffect(() => {
         let { averagePrice, totalCost } = calculateAveragePrice(
-            totalMachines,
-            goodRatio,
-            badRatio,
+            goodMachines,
+            badMachines,
             goodPrice,
             badPrice
         );
@@ -108,16 +100,8 @@ function App() {
             averagePrice,
             profit,
             grossProfitMargin,
-            isProfitable: profit > 0,
         });
-    }, [
-        totalMachines,
-        goodRatio,
-        badRatio,
-        goodPrice,
-        badPrice,
-        purchasePrice,
-    ]);
+    }, [goodMachines, badMachines, goodPrice, badPrice, purchasePrice]);
 
     const formatCurrency = (number) => {
         if (!number) return "0";
@@ -139,29 +123,29 @@ function App() {
                     isPrice={false}
                 />
                 <InputField
-                    label="Tỷ lệ máy tốt (tổng 10)"
-                    value={goodRatio}
-                    setValue={(value) => handleRatioChange("good", value)}
+                    label="Số máy tốt"
+                    value={goodMachines}
+                    setValue={(value) => handleMachineChange("good", value)}
                     isPrice={false}
-                    max={10}
-                    linkedValue={badRatio}
+                    max={totalMachines}
+                    linkedValue={badMachines}
                 />
                 <InputField
-                    label="Tỷ lệ máy xấu (tổng 10)"
-                    value={badRatio}
-                    setValue={(value) => handleRatioChange("bad", value)}
+                    label="Số máy xấu"
+                    value={badMachines}
+                    setValue={(value) => handleMachineChange("bad", value)}
                     isPrice={false}
-                    max={10}
-                    linkedValue={goodRatio}
+                    max={totalMachines}
+                    linkedValue={goodMachines}
                 />
                 <InputField
-                    label="Giá cứng máy tốt (VND)"
+                    label="Giá sàn cho máy tốt (VND)"
                     value={goodPrice}
                     setValue={setGoodPrice}
                     isPrice={true}
                 />
                 <InputField
-                    label="Giá cứng máy xấu (VND)"
+                    label="Giá sàn máy xấu (VND)"
                     value={badPrice}
                     setValue={setBadPrice}
                     isPrice={true}
@@ -195,16 +179,6 @@ function App() {
                         <p>
                             📊 <b>Tỷ suất lợi nhuận gộp:</b>{" "}
                             {result.grossProfitMargin.toFixed(2)}%
-                        </p>
-                        <p
-                            style={{
-                                fontWeight: "bold",
-                                color: result.isProfitable ? "green" : "red",
-                            }}
-                        >
-                            {result.isProfitable
-                                ? "✅ Đáng mua!"
-                                : "❌ Không đáng mua!"}
                         </p>
                     </div>
                 )}
