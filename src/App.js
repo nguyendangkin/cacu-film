@@ -1,50 +1,123 @@
 import React, { useState, useEffect } from "react";
 
 function App() {
-    const [totalMachines, setTotalMachines] = useState(() => {
-        const saved = localStorage.getItem("totalMachines");
-        return saved ? Number(saved) : 14;
-    });
-    const [goodMachines, setGoodMachines] = useState(() => {
-        const saved = localStorage.getItem("goodMachines");
-        return saved ? Number(saved) : 6;
-    });
-    const [badMachines, setBadMachines] = useState(() => {
-        const saved = localStorage.getItem("badMachines");
-        return saved ? Number(saved) : 8;
-    });
-    const [goodPrice, setGoodPrice] = useState(() => {
-        const saved = localStorage.getItem("goodPrice");
-        return saved ? Number(saved) : 1200000;
-    });
-    const [badPrice, setBadPrice] = useState(() => {
-        const saved = localStorage.getItem("badPrice");
-        return saved ? Number(saved) : 600000;
-    });
-    const [purchasePrice, setPurchasePrice] = useState(() => {
-        const saved = localStorage.getItem("purchasePrice");
-        return saved ? Number(saved) : 2000000;
-    });
+    const [totalMachines, setTotalMachines] = useState(14);
+    const [goodMachines, setGoodMachines] = useState(6);
+    const [badMachines, setBadMachines] = useState(8);
+    const [goodPrice, setGoodPrice] = useState(1200000);
+    const [badPrice, setBadPrice] = useState(600000);
+    const [purchasePrice, setPurchasePrice] = useState(2000000);
     const [result, setResult] = useState(null);
+    const [sheets, setSheets] = useState(() => {
+        const saved = localStorage.getItem("sheets");
+        return saved ? JSON.parse(saved) : [];
+    });
+    const [currentSheet, setCurrentSheet] = useState(null);
+    const [sheetName, setSheetName] = useState("");
+    const [showSaveDialog, setShowSaveDialog] = useState(false);
+    const [showRenameDialog, setShowRenameDialog] = useState(false);
+    const [newSheetName, setNewSheetName] = useState("");
 
-    // Lưu giá trị vào localStorage khi thay đổi
     useEffect(() => {
-        localStorage.setItem("totalMachines", totalMachines);
-        localStorage.setItem("goodMachines", goodMachines);
-        localStorage.setItem("badMachines", badMachines);
-        localStorage.setItem("goodPrice", goodPrice);
-        localStorage.setItem("badPrice", badPrice);
-        localStorage.setItem("purchasePrice", purchasePrice);
-    }, [
-        totalMachines,
-        goodMachines,
-        badMachines,
-        goodPrice,
-        badPrice,
-        purchasePrice,
-    ]);
+        localStorage.setItem("sheets", JSON.stringify(sheets));
+    }, [sheets]);
 
-    // Xử lý thay đổi số lượng máy
+    const handleSaveSheet = () => {
+        const sheetData = {
+            id: Date.now(),
+            name: sheetName,
+            data: {
+                totalMachines: Number(totalMachines),
+                goodMachines: Number(goodMachines),
+                badMachines: Number(badMachines),
+                goodPrice: Number(goodPrice),
+                badPrice: Number(badPrice),
+                purchasePrice: Number(purchasePrice),
+                result: result ? JSON.parse(JSON.stringify(result)) : null,
+            },
+        };
+
+        // Create a completely new array for sheets
+        setSheets((prevSheets) => [...prevSheets, sheetData]);
+        setCurrentSheet(sheetData.id);
+        setShowSaveDialog(false);
+        setSheetName("");
+    };
+
+    const handleLoadSheet = (sheet) => {
+        // Make sure we're using primitive values by explicitly converting to numbers
+        setTotalMachines(Number(sheet.data.totalMachines));
+        setGoodMachines(Number(sheet.data.goodMachines));
+        setBadMachines(Number(sheet.data.badMachines));
+        setGoodPrice(Number(sheet.data.goodPrice));
+        setBadPrice(Number(sheet.data.badPrice));
+        setPurchasePrice(Number(sheet.data.purchasePrice));
+
+        // Deep copy result object
+        setResult(
+            sheet.data.result
+                ? JSON.parse(JSON.stringify(sheet.data.result))
+                : null
+        );
+        setCurrentSheet(sheet.id);
+    };
+
+    const handleUpdateSheet = () => {
+        const updatedSheets = sheets.map((sheet) => {
+            if (sheet.id === currentSheet) {
+                // Create completely new data object
+                return {
+                    ...sheet,
+                    data: {
+                        totalMachines: Number(totalMachines),
+                        goodMachines: Number(goodMachines),
+                        badMachines: Number(badMachines),
+                        goodPrice: Number(goodPrice),
+                        badPrice: Number(badPrice),
+                        purchasePrice: Number(purchasePrice),
+                        result: result
+                            ? JSON.parse(JSON.stringify(result))
+                            : null,
+                    },
+                };
+            }
+            return sheet;
+        });
+
+        // Create a new array for sheets state
+        setSheets([...updatedSheets]);
+    };
+
+    const handleDeleteSheet = (sheetId) => {
+        setSheets(sheets.filter((sheet) => sheet.id !== sheetId));
+        if (currentSheet === sheetId) {
+            setCurrentSheet(null);
+            // Reset to default values
+            setTotalMachines(14);
+            setGoodMachines(6);
+            setBadMachines(8);
+            setGoodPrice(1200000);
+            setBadPrice(600000);
+            setPurchasePrice(2000000);
+            setResult(null); // Also reset result
+        }
+    };
+
+    const handleRenameSheet = () => {
+        const updatedSheets = sheets.map((sheet) => {
+            if (sheet.id === currentSheet) {
+                return {
+                    ...sheet,
+                    name: newSheetName,
+                };
+            }
+            return sheet;
+        });
+        setSheets([...updatedSheets]); // Create new array
+        setShowRenameDialog(false);
+        setNewSheetName("");
+    };
+
     const handleMachineChange = (type, value) => {
         const numValue = Number(value);
         if (type === "good") {
@@ -60,32 +133,27 @@ function App() {
         }
     };
 
-    // Tính giá trung bình mỗi máy
     const calculateAveragePrice = (
         goodMachines,
         badMachines,
         goodPrice,
         badPrice
     ) => {
-        // Đảm bảo các số là number
         const goodMachinesNum = Number(goodMachines);
         const badMachinesNum = Number(badMachines);
         const goodPriceNum = Number(goodPrice);
         const badPriceNum = Number(badPrice);
 
-        // Tính giá trị
         let totalCost =
             goodMachinesNum * goodPriceNum + badMachinesNum * badPriceNum;
         let averagePrice = totalCost / (goodMachinesNum + badMachinesNum);
 
-        // Làm tròn để tránh lỗi số thập phân
         return {
             averagePrice: Math.round(averagePrice),
             totalCost: Math.round(totalCost),
         };
     };
 
-    // Tính giá mỗi máy khi về tay
     const calculatePricePerMachine = () => {
         if (totalMachines === 0) return 0;
         return Math.round(purchasePrice / totalMachines);
@@ -128,9 +196,115 @@ function App() {
 
     return (
         <div style={styles.container}>
+            <div style={styles.sheetTags}>
+                {sheets.map((sheet) => (
+                    <div key={sheet.id} style={styles.sheetTag}>
+                        <span
+                            onClick={() => handleLoadSheet(sheet)}
+                            style={{
+                                cursor: "pointer",
+                                color:
+                                    currentSheet === sheet.id
+                                        ? "#007bff"
+                                        : "black",
+                            }}
+                        >
+                            {sheet.name}
+                        </span>
+                        <div style={styles.sheetButtons}>
+                            {currentSheet === sheet.id && (
+                                <button
+                                    onClick={() => {
+                                        setNewSheetName(sheet.name);
+                                        setShowRenameDialog(true);
+                                    }}
+                                    style={styles.renameButton}
+                                >
+                                    ✎
+                                </button>
+                            )}
+                            <button
+                                onClick={() => handleDeleteSheet(sheet.id)}
+                                style={styles.deleteButton}
+                            >
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
             <h1 style={styles.title}>Tính Toán Lợi Nhuận Lô Máy Ảnh 📷</h1>
             <div style={styles.box}>
-                {/* Các ô nhập liệu */}
+                <div style={styles.actions}>
+                    <button
+                        onClick={() => setShowSaveDialog(true)}
+                        style={styles.button}
+                    >
+                        Lưu Sheet Mới
+                    </button>
+                    {currentSheet && (
+                        <button
+                            onClick={handleUpdateSheet}
+                            style={{ ...styles.button, marginLeft: "10px" }}
+                        >
+                            Cập Nhật Sheet
+                        </button>
+                    )}
+                </div>
+
+                {showSaveDialog && (
+                    <div style={styles.saveDialog}>
+                        <input
+                            type="text"
+                            value={sheetName}
+                            onChange={(e) => setSheetName(e.target.value)}
+                            placeholder="Nhập tên sheet"
+                            style={styles.input}
+                        />
+                        <div style={styles.dialogButtons}>
+                            <button
+                                onClick={handleSaveSheet}
+                                style={styles.button}
+                            >
+                                Lưu
+                            </button>
+                            <button
+                                onClick={() => setShowSaveDialog(false)}
+                                style={{ ...styles.button, marginLeft: "10px" }}
+                            >
+                                Hủy
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {showRenameDialog && (
+                    <div style={styles.saveDialog}>
+                        <input
+                            type="text"
+                            value={newSheetName}
+                            onChange={(e) => setNewSheetName(e.target.value)}
+                            placeholder="Nhập tên mới"
+                            style={styles.input}
+                        />
+                        <div style={styles.dialogButtons}>
+                            <button
+                                onClick={handleRenameSheet}
+                                style={styles.button}
+                            >
+                                Đổi tên
+                            </button>
+                            <button
+                                onClick={() => setShowRenameDialog(false)}
+                                style={{ ...styles.button, marginLeft: "10px" }}
+                            >
+                                Hủy
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 <InputField
                     label="Tổng số máy"
                     value={totalMachines}
@@ -172,7 +346,6 @@ function App() {
                     isPrice={true}
                 />
 
-                {/* Hiển thị kết quả */}
                 {result && (
                     <div style={styles.resultBox}>
                         <p>
@@ -206,17 +379,19 @@ function App() {
     );
 }
 
-// Component nhập liệu
 function InputField({ label, value, setValue, isPrice, max, linkedValue }) {
     const [inputValue, setInputValue] = useState(
         isPrice ? value.toLocaleString("vi-VN") : value.toString()
     );
 
     useEffect(() => {
-        if (linkedValue !== undefined) {
+        // Update local state when props change
+        if (isPrice) {
+            setInputValue(Number(value).toLocaleString("vi-VN"));
+        } else {
             setInputValue(value.toString());
         }
-    }, [linkedValue, value]);
+    }, [value, isPrice, linkedValue]);
 
     const handleInputChange = (e) => {
         const newValue = e.target.value;
@@ -234,7 +409,7 @@ function InputField({ label, value, setValue, isPrice, max, linkedValue }) {
 
     const handleBlur = () => {
         if (isPrice) {
-            setInputValue(value.toLocaleString("vi-VN"));
+            setInputValue(Number(value).toLocaleString("vi-VN"));
         } else {
             setInputValue(value.toString());
         }
@@ -254,7 +429,6 @@ function InputField({ label, value, setValue, isPrice, max, linkedValue }) {
     );
 }
 
-// CSS inline
 const styles = {
     container: {
         display: "flex",
@@ -284,20 +458,72 @@ const styles = {
         marginTop: "5px",
     },
     button: {
-        width: "100%",
         padding: "10px",
         backgroundColor: "#007bff",
         color: "white",
         border: "none",
         borderRadius: "5px",
         cursor: "pointer",
-        fontSize: "16px",
+        fontSize: "14px",
     },
     resultBox: {
         marginTop: "15px",
         padding: "10px",
         backgroundColor: "#e9ecef",
         borderRadius: "5px",
+    },
+    sheetTags: {
+        position: "fixed",
+        top: "20px",
+        left: "20px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+    },
+    sheetTag: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: "white",
+        padding: "5px 10px",
+        borderRadius: "5px",
+        boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+        width: "200px",
+    },
+    sheetButtons: {
+        display: "flex",
+        gap: "5px",
+    },
+    deleteButton: {
+        border: "none",
+        background: "none",
+        color: "red",
+        cursor: "pointer",
+        fontSize: "16px",
+        padding: "0 5px",
+    },
+    renameButton: {
+        border: "none",
+        background: "none",
+        color: "#007bff",
+        cursor: "pointer",
+        fontSize: "14px",
+        padding: "0 5px",
+    },
+    actions: {
+        display: "flex",
+        marginBottom: "20px",
+    },
+    saveDialog: {
+        marginTop: "10px",
+        marginBottom: "20px",
+        padding: "10px",
+        backgroundColor: "#f8f9fa",
+        borderRadius: "5px",
+    },
+    dialogButtons: {
+        display: "flex",
+        marginTop: "10px",
     },
 };
 
