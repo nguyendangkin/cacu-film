@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 
 function App() {
-    const [totalMachines, setTotalMachines] = useState(14);
-    const [goodMachines, setGoodMachines] = useState(6);
+    const [totalMachines, setTotalMachines] = useState(26);
+    const [goodMachines, setGoodMachines] = useState(8);
+    const [minorIssueMachines, setMinorIssueMachines] = useState(10);
     const [badMachines, setBadMachines] = useState(8);
     const [goodPrice, setGoodPrice] = useState(1200000);
-    const [badPrice, setBadPrice] = useState(600000);
-    const [purchasePrice, setPurchasePrice] = useState(2000000);
+    const [minorIssuePrice, setMinorIssuePrice] = useState(800000);
+    const [badPrice, setBadPrice] = useState(400000);
+    const [purchasePrice, setPurchasePrice] = useState(3000000);
     const [result, setResult] = useState(null);
     const [sheets, setSheets] = useState(() => {
         const saved = localStorage.getItem("sheets");
@@ -29,15 +31,16 @@ function App() {
             data: {
                 totalMachines: Number(totalMachines),
                 goodMachines: Number(goodMachines),
+                minorIssueMachines: Number(minorIssueMachines),
                 badMachines: Number(badMachines),
                 goodPrice: Number(goodPrice),
+                minorIssuePrice: Number(minorIssuePrice),
                 badPrice: Number(badPrice),
                 purchasePrice: Number(purchasePrice),
                 result: result ? JSON.parse(JSON.stringify(result)) : null,
             },
         };
 
-        // Create a completely new array for sheets
         setSheets((prevSheets) => [...prevSheets, sheetData]);
         setCurrentSheet(sheetData.id);
         setShowSaveDialog(false);
@@ -45,15 +48,15 @@ function App() {
     };
 
     const handleLoadSheet = (sheet) => {
-        // Make sure we're using primitive values by explicitly converting to numbers
         setTotalMachines(Number(sheet.data.totalMachines));
         setGoodMachines(Number(sheet.data.goodMachines));
+        setMinorIssueMachines(Number(sheet.data.minorIssueMachines || 0));
         setBadMachines(Number(sheet.data.badMachines));
         setGoodPrice(Number(sheet.data.goodPrice));
+        setMinorIssuePrice(Number(sheet.data.minorIssuePrice || 800000));
         setBadPrice(Number(sheet.data.badPrice));
         setPurchasePrice(Number(sheet.data.purchasePrice));
 
-        // Deep copy result object
         setResult(
             sheet.data.result
                 ? JSON.parse(JSON.stringify(sheet.data.result))
@@ -65,14 +68,15 @@ function App() {
     const handleUpdateSheet = () => {
         const updatedSheets = sheets.map((sheet) => {
             if (sheet.id === currentSheet) {
-                // Create completely new data object
                 return {
                     ...sheet,
                     data: {
                         totalMachines: Number(totalMachines),
                         goodMachines: Number(goodMachines),
+                        minorIssueMachines: Number(minorIssueMachines),
                         badMachines: Number(badMachines),
                         goodPrice: Number(goodPrice),
+                        minorIssuePrice: Number(minorIssuePrice),
                         badPrice: Number(badPrice),
                         purchasePrice: Number(purchasePrice),
                         result: result
@@ -84,7 +88,6 @@ function App() {
             return sheet;
         });
 
-        // Create a new array for sheets state
         setSheets([...updatedSheets]);
     };
 
@@ -93,13 +96,15 @@ function App() {
         if (currentSheet === sheetId) {
             setCurrentSheet(null);
             // Reset to default values
-            setTotalMachines(14);
-            setGoodMachines(6);
+            setTotalMachines(26);
+            setGoodMachines(8);
+            setMinorIssueMachines(10);
             setBadMachines(8);
             setGoodPrice(1200000);
-            setBadPrice(600000);
-            setPurchasePrice(2000000);
-            setResult(null); // Also reset result
+            setMinorIssuePrice(800000);
+            setBadPrice(400000);
+            setPurchasePrice(3000000);
+            setResult(null);
         }
     };
 
@@ -113,44 +118,126 @@ function App() {
             }
             return sheet;
         });
-        setSheets([...updatedSheets]); // Create new array
+        setSheets([...updatedSheets]);
         setShowRenameDialog(false);
         setNewSheetName("");
     };
 
+    const handleTotalMachinesChange = (value) => {
+        const numValue = Number(value);
+        if (numValue >= 0) {
+            // When total machines change, maintain the current percentages
+            const oldTotal = totalMachines || 1; // Avoid division by zero
+
+            // Calculate new values based on current proportions
+            const newGood = Math.round((goodMachines / oldTotal) * numValue);
+            const newMinorIssue = Math.round(
+                (minorIssueMachines / oldTotal) * numValue
+            );
+            let newBad = numValue - newGood - newMinorIssue;
+
+            // Ensure newBad doesn't go negative due to rounding
+            if (newBad < 0) {
+                newBad = 0;
+                // Adjust minorIssue if needed
+                if (newGood > numValue) {
+                    setGoodMachines(numValue);
+                    setMinorIssueMachines(0);
+                } else {
+                    setMinorIssueMachines(numValue - newGood);
+                }
+            } else {
+                setGoodMachines(newGood);
+                setMinorIssueMachines(newMinorIssue);
+                setBadMachines(newBad);
+            }
+
+            setTotalMachines(numValue);
+        }
+    };
+
     const handleMachineChange = (type, value) => {
         const numValue = Number(value);
+        if (numValue < 0) return;
+
         if (type === "good") {
-            if (numValue >= 0 && numValue <= totalMachines) {
+            if (numValue <= totalMachines) {
+                // If new good count is valid
+                const remainingForOthers = totalMachines - numValue;
+                // Keep the ratio between minor issues and bad machines
+                const totalOthers = minorIssueMachines + badMachines;
+                if (totalOthers === 0) {
+                    // If there are no others, split evenly
+                    setMinorIssueMachines(Math.round(remainingForOthers / 2));
+                    setBadMachines(
+                        remainingForOthers - Math.round(remainingForOthers / 2)
+                    );
+                } else {
+                    // Otherwise maintain the ratio
+                    const minorIssueRatio = minorIssueMachines / totalOthers;
+                    const newMinorIssue = Math.round(
+                        remainingForOthers * minorIssueRatio
+                    );
+                    setMinorIssueMachines(newMinorIssue);
+                    setBadMachines(remainingForOthers - newMinorIssue);
+                }
                 setGoodMachines(numValue);
-                setBadMachines(totalMachines - numValue);
             }
-        } else {
-            if (numValue >= 0 && numValue <= totalMachines) {
-                setBadMachines(numValue);
-                setGoodMachines(totalMachines - numValue);
+        } else if (type === "minorIssue") {
+            if (numValue <= totalMachines) {
+                const remainingForOthers =
+                    totalMachines - numValue - goodMachines;
+                if (remainingForOthers >= 0) {
+                    setBadMachines(remainingForOthers);
+                    setMinorIssueMachines(numValue);
+                } else {
+                    // If not enough remaining, adjust good machines
+                    const possible = totalMachines - goodMachines;
+                    setMinorIssueMachines(possible);
+                    setBadMachines(0);
+                }
+            }
+        } else if (type === "bad") {
+            if (numValue <= totalMachines) {
+                const remainingForOthers =
+                    totalMachines - numValue - goodMachines;
+                if (remainingForOthers >= 0) {
+                    setMinorIssueMachines(remainingForOthers);
+                    setBadMachines(numValue);
+                } else {
+                    // If not enough remaining, adjust good machines
+                    const possible = totalMachines - goodMachines;
+                    setBadMachines(possible);
+                    setMinorIssueMachines(0);
+                }
             }
         }
     };
 
-    const calculateAveragePrice = (
-        goodMachines,
-        badMachines,
-        goodPrice,
-        badPrice
-    ) => {
+    const calculateAveragePrice = () => {
         const goodMachinesNum = Number(goodMachines);
+        const minorIssueMachinesNum = Number(minorIssueMachines);
         const badMachinesNum = Number(badMachines);
         const goodPriceNum = Number(goodPrice);
+        const minorIssuePriceNum = Number(minorIssuePrice);
         const badPriceNum = Number(badPrice);
 
-        let totalCost =
-            goodMachinesNum * goodPriceNum + badMachinesNum * badPriceNum;
-        let averagePrice = totalCost / (goodMachinesNum + badMachinesNum);
+        const goodValue = goodMachinesNum * goodPriceNum;
+        const minorIssueValue = minorIssueMachinesNum * minorIssuePriceNum;
+        const badValue = badMachinesNum * badPriceNum;
+        const totalCost = goodValue + minorIssueValue + badValue;
+
+        const totalMachinesNum =
+            goodMachinesNum + minorIssueMachinesNum + badMachinesNum;
+        const averagePrice =
+            totalMachinesNum > 0 ? totalCost / totalMachinesNum : 0;
 
         return {
             averagePrice: Math.round(averagePrice),
             totalCost: Math.round(totalCost),
+            goodValue: Math.round(goodValue),
+            minorIssueValue: Math.round(minorIssueValue),
+            badValue: Math.round(badValue),
         };
     };
 
@@ -160,34 +247,45 @@ function App() {
     };
 
     useEffect(() => {
-        let { averagePrice, totalCost } = calculateAveragePrice(
-            goodMachines,
-            badMachines,
-            goodPrice,
-            badPrice
-        );
-        let profit = totalCost - purchasePrice;
-        let grossProfitMargin = (profit / totalCost) * 100;
-        let pricePerMachine = calculatePricePerMachine();
+        // Update calculations whenever any input changes
+        const calculationResults = calculateAveragePrice();
+        const profit = calculationResults.totalCost - purchasePrice;
+        const grossProfitMargin =
+            calculationResults.totalCost > 0
+                ? (profit / calculationResults.totalCost) * 100
+                : 0;
+        const pricePerMachine = calculatePricePerMachine();
+
+        // Calculate percentages for each machine type
+        const goodPercentage =
+            totalMachines > 0 ? (goodMachines / totalMachines) * 100 : 0;
+        const minorIssuePercentage =
+            totalMachines > 0 ? (minorIssueMachines / totalMachines) * 100 : 0;
+        const badPercentage =
+            totalMachines > 0 ? (badMachines / totalMachines) * 100 : 0;
 
         setResult({
-            totalValue: totalCost,
-            averagePrice,
+            ...calculationResults,
             profit,
             grossProfitMargin,
             pricePerMachine,
+            goodPercentage,
+            minorIssuePercentage,
+            badPercentage,
         });
     }, [
         goodMachines,
+        minorIssueMachines,
         badMachines,
         goodPrice,
+        minorIssuePrice,
         badPrice,
         purchasePrice,
         totalMachines,
     ]);
 
     const formatCurrency = (number) => {
-        if (!number) return "0";
+        if (!number && number !== 0) return "0";
         if (typeof number !== "number") return "0";
         return Math.round(number)
             .toString()
@@ -234,7 +332,7 @@ function App() {
                 ))}
             </div>
 
-            <h1 style={styles.title}>Tính Toán Lợi Nhuận Lô Máy Ảnh 📷</h1>
+            <h1 style={styles.title}>Tính Toán Lợi Nhuận Lô Máy Ảnh Film 📷</h1>
             <div style={styles.box}>
                 <div style={styles.actions}>
                     <button
@@ -308,33 +406,82 @@ function App() {
                 <InputField
                     label="Tổng số máy"
                     value={totalMachines}
-                    setValue={setTotalMachines}
+                    setValue={handleTotalMachinesChange}
                     isPrice={false}
                 />
+
+                <div style={styles.machineTypesContainer}>
+                    <h3 style={styles.sectionTitle}>
+                        Phân Loại Chất Lượng Máy:
+                    </h3>
+
+                    <div style={styles.machineTypeRow}>
+                        <InputField
+                            label="Máy hoạt động tốt"
+                            value={goodMachines}
+                            setValue={(value) =>
+                                handleMachineChange("good", value)
+                            }
+                            isPrice={false}
+                            max={totalMachines}
+                        />
+                        {result && (
+                            <div style={styles.percentage}>
+                                {result.goodPercentage.toFixed(1)}%
+                            </div>
+                        )}
+                    </div>
+
+                    <div style={styles.machineTypeRow}>
+                        <InputField
+                            label="Máy lỗi nhẹ (cần CLA)"
+                            value={minorIssueMachines}
+                            setValue={(value) =>
+                                handleMachineChange("minorIssue", value)
+                            }
+                            isPrice={false}
+                            max={totalMachines}
+                        />
+                        {result && (
+                            <div style={styles.percentage}>
+                                {result.minorIssuePercentage.toFixed(1)}%
+                            </div>
+                        )}
+                    </div>
+
+                    <div style={styles.machineTypeRow}>
+                        <InputField
+                            label="Máy hỏng (parts/sửa lớn)"
+                            value={badMachines}
+                            setValue={(value) =>
+                                handleMachineChange("bad", value)
+                            }
+                            isPrice={false}
+                            max={totalMachines}
+                        />
+                        {result && (
+                            <div style={styles.percentage}>
+                                {result.badPercentage.toFixed(1)}%
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <h3 style={styles.sectionTitle}>Giá Bán Ước Tính:</h3>
                 <InputField
-                    label="Số máy tốt"
-                    value={goodMachines}
-                    setValue={(value) => handleMachineChange("good", value)}
-                    isPrice={false}
-                    max={totalMachines}
-                    linkedValue={badMachines}
-                />
-                <InputField
-                    label="Số máy xấu"
-                    value={badMachines}
-                    setValue={(value) => handleMachineChange("bad", value)}
-                    isPrice={false}
-                    max={totalMachines}
-                    linkedValue={goodMachines}
-                />
-                <InputField
-                    label="Giá sàn cho máy tốt (VND)"
+                    label="Giá máy hoạt động tốt (VND)"
                     value={goodPrice}
                     setValue={setGoodPrice}
                     isPrice={true}
                 />
                 <InputField
-                    label="Giá sàn máy xấu (VND)"
+                    label="Giá máy lỗi nhẹ (VND)"
+                    value={minorIssuePrice}
+                    setValue={setMinorIssuePrice}
+                    isPrice={true}
+                />
+                <InputField
+                    label="Giá máy hỏng (VND)"
                     value={badPrice}
                     setValue={setBadPrice}
                     isPrice={true}
@@ -348,27 +495,62 @@ function App() {
 
                 {result && (
                     <div style={styles.resultBox}>
+                        <h3 style={styles.resultTitle}>Kết Quả Phân Tích</h3>
+
                         <p>
-                            📌 <b>Giá cuối khi Lô về tay:</b>{" "}
+                            📌 <b>Giá mua lô:</b>{" "}
                             {formatCurrency(purchasePrice)} VND
                         </p>
                         <p>
-                            💵 <b>Giá mỗi máy khi về tay:</b>{" "}
+                            💵 <b>Giá trung bình mỗi máy khi mua:</b>{" "}
                             {formatCurrency(result.pricePerMachine)} VND
                         </p>
+
+                        <div style={styles.separator}></div>
+
                         <p>
-                            🔹 <b>Tổng giá trị thực:</b>{" "}
-                            {formatCurrency(result.totalValue)} VND
+                            🔹 <b>Tổng giá trị khi bán:</b>{" "}
+                            {formatCurrency(result.totalCost)} VND
                         </p>
+                        <div style={styles.valueBreakdown}>
+                            <p>
+                                ✓ Giá trị máy tốt:{" "}
+                                {formatCurrency(result.goodValue)} VND
+                            </p>
+                            <p>
+                                ✓ Giá trị máy lỗi nhẹ:{" "}
+                                {formatCurrency(result.minorIssueValue)} VND
+                            </p>
+                            <p>
+                                ✓ Giá trị máy hỏng:{" "}
+                                {formatCurrency(result.badValue)} VND
+                            </p>
+                        </div>
+
                         <p>
-                            📉 <b>Giá trung bình mỗi máy:</b>{" "}
+                            📉 <b>Giá trung bình khi bán:</b>{" "}
                             {formatCurrency(result.averagePrice)} VND
                         </p>
-                        <p>
+
+                        <div style={styles.separator}></div>
+
+                        <p
+                            style={
+                                result.profit >= 0
+                                    ? styles.profitPositive
+                                    : styles.profitNegative
+                            }
+                        >
                             💰 <b>Lợi nhuận gộp:</b>{" "}
                             {formatCurrency(result.profit)} VND
                         </p>
-                        <p>
+                        <p
+                            style={
+                                result.grossProfitMargin >= 0
+                                    ? styles.profitPositive
+                                    : styles.profitNegative
+                            }
+                        >
                             📊 <b>Tỷ suất lợi nhuận gộp:</b>{" "}
                             {result.grossProfitMargin.toFixed(2)}%
                         </p>
@@ -438,18 +620,33 @@ const styles = {
         backgroundColor: "#f8f9fa",
         padding: "20px",
     },
-    title: { fontSize: "24px", fontWeight: "bold", marginBottom: "20px" },
+    title: {
+        fontSize: "24px",
+        fontWeight: "bold",
+        marginBottom: "20px",
+        textAlign: "center",
+    },
+    sectionTitle: {
+        fontSize: "16px",
+        marginTop: "15px",
+        marginBottom: "10px",
+        fontWeight: "bold",
+        borderBottom: "1px solid #eee",
+        paddingBottom: "5px",
+    },
     box: {
         backgroundColor: "white",
         padding: "20px",
         borderRadius: "10px",
         boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-        width: "350px",
+        width: "400px",
+        maxWidth: "100%",
     },
     inputContainer: {
         display: "flex",
         flexDirection: "column",
         marginBottom: "10px",
+        flex: 1,
     },
     input: {
         padding: "8px",
@@ -467,10 +664,18 @@ const styles = {
         fontSize: "14px",
     },
     resultBox: {
-        marginTop: "15px",
-        padding: "10px",
-        backgroundColor: "#e9ecef",
-        borderRadius: "5px",
+        marginTop: "20px",
+        padding: "15px",
+        backgroundColor: "#f8f9fa",
+        borderRadius: "8px",
+        border: "1px solid #e9ecef",
+    },
+    resultTitle: {
+        fontSize: "18px",
+        marginTop: "0",
+        marginBottom: "15px",
+        textAlign: "center",
+        color: "#007bff",
     },
     sheetTags: {
         position: "fixed",
@@ -513,6 +718,7 @@ const styles = {
     actions: {
         display: "flex",
         marginBottom: "20px",
+        justifyContent: "center",
     },
     saveDialog: {
         marginTop: "10px",
@@ -524,6 +730,42 @@ const styles = {
     dialogButtons: {
         display: "flex",
         marginTop: "10px",
+    },
+    machineTypesContainer: {
+        marginBottom: "15px",
+    },
+    machineTypeRow: {
+        display: "flex",
+        alignItems: "center",
+        marginBottom: "10px",
+    },
+    percentage: {
+        marginLeft: "10px",
+        backgroundColor: "#e9ecef",
+        padding: "5px 8px",
+        borderRadius: "4px",
+        fontSize: "14px",
+        fontWeight: "bold",
+        minWidth: "50px",
+        textAlign: "center",
+    },
+    separator: {
+        height: "1px",
+        backgroundColor: "#dee2e6",
+        margin: "15px 0",
+    },
+    valueBreakdown: {
+        paddingLeft: "20px",
+        fontSize: "14px",
+        color: "#6c757d",
+    },
+    profitPositive: {
+        color: "#28a745",
+        fontWeight: "bold",
+    },
+    profitNegative: {
+        color: "#dc3545",
+        fontWeight: "bold",
     },
 };
 
