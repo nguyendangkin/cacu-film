@@ -7,8 +7,8 @@ function App() {
     const [badMachines, setBadMachines] = useState(8);
     const [goodPrice, setGoodPrice] = useState(1200000);
     const [minorIssuePrice, setMinorIssuePrice] = useState(800000);
-    const [badPrice, setBadPrice] = useState(400000);
-    const [purchasePrice, setPurchasePrice] = useState(3000000);
+    const [badPrice, setBadPrice] = useState(600000);
+    const [purchasePrice, setPurchasePrice] = useState(4500000);
     const [result, setResult] = useState(null);
     const [sheets, setSheets] = useState(() => {
         const saved = localStorage.getItem("sheets");
@@ -566,17 +566,9 @@ function InputField({ label, value, setValue, isPrice, max, linkedValue }) {
         isPrice ? value.toLocaleString("vi-VN") : value.toString()
     );
 
-    useEffect(() => {
-        // Update local state when props change
-        if (isPrice) {
-            setInputValue(Number(value).toLocaleString("vi-VN"));
-        } else {
-            setInputValue(value.toString());
-        }
-    }, [value, isPrice, linkedValue]);
-
     const handleInputChange = (e) => {
         const newValue = e.target.value;
+        // Không format số ngay lập tức khi đang nhập
         setInputValue(newValue);
 
         const rawValue = newValue.replace(/\./g, "");
@@ -589,6 +581,7 @@ function InputField({ label, value, setValue, isPrice, max, linkedValue }) {
         }
     };
 
+    // Chỉ format khi người dùng rời khỏi input
     const handleBlur = () => {
         if (isPrice) {
             setInputValue(Number(value).toLocaleString("vi-VN"));
@@ -596,6 +589,13 @@ function InputField({ label, value, setValue, isPrice, max, linkedValue }) {
             setInputValue(value.toString());
         }
     };
+
+    // Bỏ useEffect để tránh việc tự động format trong quá trình nhập
+    useEffect(() => {
+        if (linkedValue !== undefined) {
+            setInputValue(value.toString());
+        }
+    }, [linkedValue, value]);
 
     return (
         <div style={styles.inputContainer}>
