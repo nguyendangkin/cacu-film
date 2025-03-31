@@ -1,10 +1,23 @@
 import React, { useState, useEffect } from "react";
 
 function App() {
+    // Default percentages for machine types
+    const defaultPercentages = {
+        good: 25,
+        minorIssue: 45,
+        bad: 30,
+    };
+
     const [totalMachines, setTotalMachines] = useState(26);
-    const [goodMachines, setGoodMachines] = useState(8);
-    const [minorIssueMachines, setMinorIssueMachines] = useState(10);
-    const [badMachines, setBadMachines] = useState(8);
+    const [goodMachines, setGoodMachines] = useState(
+        (26 * defaultPercentages.good) / 100
+    );
+    const [minorIssueMachines, setMinorIssueMachines] = useState(
+        (26 * defaultPercentages.minorIssue) / 100
+    );
+    const [badMachines, setBadMachines] = useState(
+        (26 * defaultPercentages.bad) / 100
+    );
     const [goodPrice, setGoodPrice] = useState(1200000);
     const [minorIssuePrice, setMinorIssuePrice] = useState(800000);
     const [badPrice, setBadPrice] = useState(600000);
@@ -97,9 +110,9 @@ function App() {
             setCurrentSheet(null);
             // Reset to default values
             setTotalMachines(26);
-            setGoodMachines(8);
-            setMinorIssueMachines(10);
-            setBadMachines(8);
+            setGoodMachines((26 * defaultPercentages.good) / 100);
+            setMinorIssueMachines((26 * defaultPercentages.minorIssue) / 100);
+            setBadMachines((26 * defaultPercentages.bad) / 100);
             setGoodPrice(1200000);
             setMinorIssuePrice(800000);
             setBadPrice(400000);
@@ -126,33 +139,16 @@ function App() {
     const handleTotalMachinesChange = (value) => {
         const numValue = Number(value);
         if (numValue >= 0) {
-            // When total machines change, maintain the current percentages
-            const oldTotal = totalMachines || 1; // Avoid division by zero
-
-            // Calculate new values based on current proportions
-            const newGood = Math.round((goodMachines / oldTotal) * numValue);
-            const newMinorIssue = Math.round(
-                (minorIssueMachines / oldTotal) * numValue
-            );
-            let newBad = numValue - newGood - newMinorIssue;
-
-            // Ensure newBad doesn't go negative due to rounding
-            if (newBad < 0) {
-                newBad = 0;
-                // Adjust minorIssue if needed
-                if (newGood > numValue) {
-                    setGoodMachines(numValue);
-                    setMinorIssueMachines(0);
-                } else {
-                    setMinorIssueMachines(numValue - newGood);
-                }
-            } else {
-                setGoodMachines(newGood);
-                setMinorIssueMachines(newMinorIssue);
-                setBadMachines(newBad);
-            }
+            // Apply the fixed percentages to the new total
+            const newGood = (numValue * defaultPercentages.good) / 100;
+            const newMinorIssue =
+                (numValue * defaultPercentages.minorIssue) / 100;
+            const newBad = (numValue * defaultPercentages.bad) / 100;
 
             setTotalMachines(numValue);
+            setGoodMachines(newGood);
+            setMinorIssueMachines(newMinorIssue);
+            setBadMachines(newBad);
         }
     };
 
@@ -425,11 +421,9 @@ function App() {
                             isPrice={false}
                             max={totalMachines}
                         />
-                        {result && (
-                            <div style={styles.percentage}>
-                                {result.goodPercentage.toFixed(1)}%
-                            </div>
-                        )}
+                        <div style={styles.percentage}>
+                            {result && `${result.goodPercentage.toFixed(1)}%`}
+                        </div>
                     </div>
 
                     <div style={styles.machineTypeRow}>
@@ -442,11 +436,10 @@ function App() {
                             isPrice={false}
                             max={totalMachines}
                         />
-                        {result && (
-                            <div style={styles.percentage}>
-                                {result.minorIssuePercentage.toFixed(1)}%
-                            </div>
-                        )}
+                        <div style={styles.percentage}>
+                            {result &&
+                                `${result.minorIssuePercentage.toFixed(1)}%`}
+                        </div>
                     </div>
 
                     <div style={styles.machineTypeRow}>
@@ -459,11 +452,9 @@ function App() {
                             isPrice={false}
                             max={totalMachines}
                         />
-                        {result && (
-                            <div style={styles.percentage}>
-                                {result.badPercentage.toFixed(1)}%
-                            </div>
-                        )}
+                        <div style={styles.percentage}>
+                            {result && `${result.badPercentage.toFixed(1)}%`}
+                        </div>
                     </div>
                 </div>
 
@@ -590,12 +581,14 @@ function InputField({ label, value, setValue, isPrice, max, linkedValue }) {
         }
     };
 
-    // Bỏ useEffect để tránh việc tự động format trong quá trình nhập
+    // Cập nhật giá trị hiển thị khi value thay đổi từ bên ngoài
     useEffect(() => {
-        if (linkedValue !== undefined) {
+        if (isPrice) {
+            setInputValue(Number(value).toLocaleString("vi-VN"));
+        } else {
             setInputValue(value.toString());
         }
-    }, [linkedValue, value]);
+    }, [value, isPrice]);
 
     return (
         <div style={styles.inputContainer}>
