@@ -428,7 +428,7 @@ function App() {
 
                     <div style={styles.machineTypeRow}>
                         <InputField
-                            label="Máy lỗi được giá trung bình"
+                            label="Máy được giá trung bình"
                             value={minorIssueMachines}
                             setValue={(value) =>
                                 handleMachineChange("minorIssue", value)
@@ -444,7 +444,7 @@ function App() {
 
                     <div style={styles.machineTypeRow}>
                         <InputField
-                            label="Máy xác"
+                            label="Máy được giá xác"
                             value={badMachines}
                             setValue={(value) =>
                                 handleMachineChange("bad", value)
@@ -460,19 +460,19 @@ function App() {
 
                 <h3 style={styles.sectionTitle}>Giá Bán Ước Tính:</h3>
                 <InputField
-                    label="Giá máy tốt (VND)"
+                    label="Máy được giá tốt (VND)"
                     value={goodPrice}
                     setValue={setGoodPrice}
                     isPrice={true}
                 />
                 <InputField
-                    label="Giá máy trung bình (VND)"
+                    label="Máy được giá trung bình (VND)"
                     value={minorIssuePrice}
                     setValue={setMinorIssuePrice}
                     isPrice={true}
                 />
                 <InputField
-                    label="Giá máy hỏng (VND)"
+                    label="Máy được giá xác (VND)"
                     value={badPrice}
                     setValue={setBadPrice}
                     isPrice={true}
