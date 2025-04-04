@@ -18,9 +18,9 @@ function App() {
     const [badMachines, setBadMachines] = useState(
         (26 * defaultPercentages.bad) / 100
     );
-    const [goodPrice, setGoodPrice] = useState(1200000);
+    const [goodPrice, setGoodPrice] = useState(1100000);
     const [minorIssuePrice, setMinorIssuePrice] = useState(800000);
-    const [badPrice, setBadPrice] = useState(600000);
+    const [badPrice, setBadPrice] = useState(500000);
     const [purchasePrice, setPurchasePrice] = useState(4500000);
     const [result, setResult] = useState(null);
     const [sheets, setSheets] = useState(() => {
