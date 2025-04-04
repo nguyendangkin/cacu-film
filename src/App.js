@@ -460,13 +460,13 @@ function App() {
 
                 <h3 style={styles.sectionTitle}>Giá Bán Ước Tính:</h3>
                 <InputField
-                    label="Giá máy hoạt động tốt (VND)"
+                    label="Giá máy tốt (VND)"
                     value={goodPrice}
                     setValue={setGoodPrice}
                     isPrice={true}
                 />
                 <InputField
-                    label="Giá máy lỗi nhẹ (VND)"
+                    label="Giá máy trung bình (VND)"
                     value={minorIssuePrice}
                     setValue={setMinorIssuePrice}
                     isPrice={true}
